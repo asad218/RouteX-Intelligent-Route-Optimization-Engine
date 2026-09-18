@@ -1,23 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const Graph = require('../services/routing/graph')
+const loadGraph = require('../services/routing/loadGraph')
+const db = require('../db/db');
 
-const graph = new Graph();
-graph.addNode("A");
-graph.addNode("B");
-graph.addNode("C");
-graph.addNode("D");
 
-graph.addEdge("A", "B", 4);
-graph.addEdge("A", "C", 2);
-graph.addEdge("B", "D", 3);
-graph.addEdge("C", "A", 2);
-graph.addEdge("C", "D", 5);
-graph.addEdge("D", "B", 3);
-graph.addEdge("D", "C", 5);
 const {Dijkstra, reconstructPath} = require('../services/dijkstra')
 
-router.get('/', (req, res) =>{
+router.get('/', async (req, res) =>{
     const {start ,end} = req.query
 
     if(!start || !end){
@@ -28,6 +18,7 @@ router.get('/', (req, res) =>{
 
     try{
 
+        const graph = await loadGraph();
         const { distances, previous } = Dijkstra(graph, start);
 
         if (!distances.has(end) || distances.get(end) === Infinity) {
@@ -38,12 +29,33 @@ router.get('/', (req, res) =>{
 
         const path = reconstructPath(previous, start, end);
 
+        const placeholders = path.map(() => "?").join(",");
+
+        const [nodes] = await db.query(
+            `SELECT id, latitude, longitude
+             FROM nodes
+             WHERE id IN (${placeholders})`,
+            path
+        );
+
+        const nodeMap = new Map(
+            nodes.map(node => [node.id, node])
+        );
+
+        const coordinates = path.map(nodeId => {
+            const node = nodeMap.get(nodeId);
+
+            return [
+                Number(node.latitude),
+                Number(node.longitude)
+            ];
+        });
+
         return res.status(200).json({
             path : path,
-            distance : distances.get(end)
+            distance : distances.get(end),
+            coordinates : coordinates
         })
-
-        
     } catch (error) {
 
         console.error(" Error calculating route : ", error);

@@ -43,16 +43,34 @@ const { Dijkstra, reconstructPath } = require('./src/services/dijkstra');
 
 const db = require("./src/db/db");
 
-async function testConnection() {
+// async function testConnection() {
+//     try {
+//         const [rows] = await db.query("SELECT * FROM nodes");
+//         console.log("Database connected!");
+//         console.log(rows);
+//     } catch (error) {
+//         console.error("Database connection failed:", error.message);
+//     } finally {
+//         await db.end();
+//     }
+// }
+
+// testConnection();
+
+
+const loadGraph = require("./src/services/routing/loadGraph");
+
+async function test() {
     try {
-        const [rows] = await db.query("SELECT * FROM nodes");
-        console.log("Database connected!");
-        console.log(rows);
+        const graph = await loadGraph();
+
+        console.log("Graph loaded from MySQL:");
+        console.log(graph.adj_list);
     } catch (error) {
-        console.error("Database connection failed:", error.message);
+        console.error(error);
     } finally {
-        await db.end();
+        process.exit();
     }
 }
 
-testConnection();
+test();

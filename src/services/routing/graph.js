@@ -31,13 +31,16 @@ const graph = new Graph();
 graph.addNode("A");
 graph.addNode("B");
 graph.addNode("C");
+graph.addNode("D");
 
 graph.addEdge("A", "B", 4);
-graph.addEdge("A", "C", 3);
+graph.addEdge("A", "C", 2);
 graph.addEdge("B", "A", 4);
-graph.addEdge("B", "C", 2);
-graph.addEdge("C", "A", 3);
-graph.addEdge("C", "B", 2);
+graph.addEdge("B", "D", 3);
+graph.addEdge("C", "A", 2);
+graph.addEdge("C", "D", 5);
+graph.addEdge("D", "B", 3);
+graph.addEdge("D", "C", 5);
 
 console.log(graph.adj_list);
 

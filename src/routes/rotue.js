@@ -67,7 +67,12 @@ router.get('/', async (req, res) => {
 
         let detailedCoordinates = coordinates;
 
-        // Only pass start and end to OSRM — let OSRM compute the road-snapped geometry
+        // Dijkstra distance is the fallback (sparse graph, less accurate)
+        const dijkstraDistanceMeters = distances.get(end);
+        let distanceMeters = dijkstraDistanceMeters;
+        let estimatedMinutes = parseFloat(((distanceMeters / 1000 / 30) * 60).toFixed(1));
+
+        // Only pass start and end to OSRM — let OSRM compute the road-snapped geometry AND accurate distance
         try {
             const osrmUrl = `http://router.project-osrm.org/route/v1/driving/${snapStartLon},${snapStartLat};${snapEndLon},${snapEndLat}?overview=full&geometries=geojson`;
             const osrmRes = await fetch(osrmUrl);
@@ -75,17 +80,27 @@ router.get('/', async (req, res) => {
             if (osrmRes.ok) {
                 const osrmData = await osrmRes.json();
                 if (osrmData.routes && osrmData.routes.length > 0) {
+                    const osrmRoute = osrmData.routes[0];
+
                     // OSRM returns [lon, lat], convert to [lat, lon] for Leaflet
-                    detailedCoordinates = osrmData.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+                    detailedCoordinates = osrmRoute.geometry.coordinates.map(c => [c[1], c[0]]);
+
+                    // Use OSRM's accurate road distance (meters) and travel time (seconds)
+                    distanceMeters = osrmRoute.distance;                          // real road distance
+                    estimatedMinutes = parseFloat((osrmRoute.duration / 60).toFixed(1)); // real travel time
                 }
             }
         } catch (osrmErr) {
-            console.warn("OSRM geometry snap failed, using node path:", osrmErr.message);
+            console.warn("OSRM geometry snap failed, using Dijkstra fallback:", osrmErr.message);
         }
+
+        const distanceKm = parseFloat((distanceMeters / 1000).toFixed(2));
 
         return res.status(200).json({
             path: path,
-            distance: distances.get(end),
+            distance: distanceMeters,          // raw meters (Dijkstra sum)
+            distanceKm: distanceKm,            // human-readable km
+            estimatedMinutes: estimatedMinutes, // estimated travel time
             coordinates: detailedCoordinates
         });
     } catch (error) {

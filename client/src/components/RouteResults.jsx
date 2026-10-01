@@ -4,8 +4,9 @@ import { Route, Clock, Navigation2, MapPin } from 'lucide-react';
 const RouteResults = ({ data }) => {
   if (!data) return null;
 
-  const distanceKm = (data.distance / 1000).toFixed(2);
-  const estimatedTimeMins = Math.round((data.distance / 1000) * 1.5); // 1.5 mins per km estimate
+  // Use pre-calculated values from API (Dijkstra edge-weight sum)
+  const distanceKm = data.distanceKm ?? (data.distance / 1000).toFixed(2);
+  const estimatedTimeMins = data.estimatedMinutes ?? Math.round((data.distance / 1000) * 2);
   const waypointsCount = data.path ? data.path.length : 0;
 
   return (

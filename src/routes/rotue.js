@@ -1,18 +1,29 @@
 const express = require('express');
 const router = express.Router();
-const Graph = require('../services/routing/graph');
-const loadGraph = require('../services/routing/loadGraph');
-const db = require('../db/db');
-const findNearestNode = require('../services/nearestNode');
 const { Dijkstra, reconstructPath } = require('../services/dijkstra');
+const {
+    initializeGraphCache,
+    getCachedGraph,
+    getCachedNodeMap,
+    findNearestNodeCached
+} = require('../services/graphCache');
 
 router.get('/', async (req, res) => {
     let { start, end, startLat, startLon, endLat, endLon } = req.query;
 
     try {
+        let graph = getCachedGraph();
+        let nodeMap = getCachedNodeMap();
+
+        if (!graph || !nodeMap || nodeMap.size === 0) {
+            const cache = await initializeGraphCache();
+            graph = cache.graph;
+            nodeMap = cache.nodeMap;
+        }
+
         if (startLat && startLon && endLat && endLon) {
-            const startNodeObj = await findNearestNode(parseFloat(startLat), parseFloat(startLon));
-            const endNodeObj = await findNearestNode(parseFloat(endLat), parseFloat(endLon));
+            const startNodeObj = findNearestNodeCached(parseFloat(startLat), parseFloat(startLon));
+            const endNodeObj = findNearestNodeCached(parseFloat(endLat), parseFloat(endLon));
 
             if (!startNodeObj || !endNodeObj) {
                 return res.status(404).json({
@@ -30,7 +41,6 @@ router.get('/', async (req, res) => {
             });
         }
 
-        const graph = await loadGraph();
         const { distances, previous } = Dijkstra(graph, start);
 
         if (!distances.has(end) || distances.get(end) === Infinity) {
@@ -40,18 +50,6 @@ router.get('/', async (req, res) => {
         }
 
         const path = reconstructPath(previous, start, end);
-        const placeholders = path.map(() => "?").join(",");
-
-        const [nodes] = await db.query(
-            `SELECT id, latitude, longitude
-             FROM nodes
-             WHERE id IN (${placeholders})`,
-            path
-        );
-
-        const nodeMap = new Map(
-            nodes.map(node => [String(node.id), node])
-        );
 
         const coordinates = path.map(nodeId => {
             const node = nodeMap.get(String(nodeId));

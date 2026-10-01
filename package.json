@@ -1,8 +1,17 @@
 {
+  "name": "routex-backend",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node server.js",
+    "test": "jest --verbose"
+  },
   "dependencies": {
     "cors": "^2.8.6",
     "dotenv": "^18.0.3",
     "express": "^5.2.1",
     "mysql2": "^3.24.4"
+  },
+  "devDependencies": {
+    "jest": "^30.5.2"
   }
 }

@@ -1,7 +1,7 @@
 const Graph = require('./routing/graph');
-const MinHeap = require('./routing/Minheap')
+const MinHeap = require('./routing/Minheap');
 
-function Dijkstra(graph, startNode) {
+function Dijkstra(graph, startNode, targetNode = null) {
     const distances = new Map();
     const previous = new Map();
     const pq = new MinHeap((a, b) => a.distance - b.distance);
@@ -18,8 +18,15 @@ function Dijkstra(graph, startNode) {
     distances.set(startNode, 0);
     pq.insert({ node: startNode, distance: 0 });
 
+    let nodesEvaluated = 0;
+
     while (pq.heap.length > 0) {
         const { node: currentNode, distance: currentDistance } = pq.extractMin();
+        nodesEvaluated++;
+
+        if (targetNode && currentNode === targetNode) {
+            break;
+        }
 
         if (currentDistance > distances.get(currentNode)) {
             continue;
@@ -39,7 +46,7 @@ function Dijkstra(graph, startNode) {
         }
     }
 
-    return { distances, previous };
+    return { distances, previous, nodesEvaluated };
 }
 
 function reconstructPath(previous, startNode, targetNode) {

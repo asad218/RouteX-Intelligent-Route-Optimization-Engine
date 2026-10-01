@@ -1,13 +1,12 @@
 import React from 'react';
-import { Route, Clock, Navigation2, MapPin } from 'lucide-react';
+import { Route, Clock, Navigation2, Cpu, Zap } from 'lucide-react';
 
 const RouteResults = ({ data }) => {
   if (!data) return null;
 
-  // Use pre-calculated values from API (Dijkstra edge-weight sum)
   const distanceKm = data.distanceKm ?? (data.distance / 1000).toFixed(2);
   const estimatedTimeMins = data.estimatedMinutes ?? Math.round((data.distance / 1000) * 2);
-  const waypointsCount = data.path ? data.path.length : 0;
+  const metrics = data.algorithmMetrics || {};
 
   return (
     <div className="panel">
@@ -34,15 +33,29 @@ const RouteResults = ({ data }) => {
         </div>
       </div>
 
-      <div className="stat-box" style={{ width: '100%', boxSizing: 'border-box' }}>
-        <span className="stat-label">
-          <MapPin size={14} />
-          Road Segments
-        </span>
-        <span className="stat-value" style={{ fontSize: '0.95rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
-          {waypointsCount} road intersections evaluated
-        </span>
-      </div>
+      {metrics.algorithm && (
+        <div className="stats-grid" style={{ marginTop: '0.75rem' }}>
+          <div className="stat-box">
+            <span className="stat-label">
+              <Cpu size={14} />
+              Algorithm
+            </span>
+            <span className="stat-value" style={{ fontSize: '1rem', color: '#2563eb' }}>
+              {metrics.algorithm}
+            </span>
+          </div>
+
+          <div className="stat-box">
+            <span className="stat-label">
+              <Zap size={14} color="#16a34a" />
+              Nodes Evaluated
+            </span>
+            <span className="stat-value" style={{ fontSize: '1rem', color: '#16a34a' }}>
+              {metrics.nodesEvaluated} {metrics.efficiencyGainPercent !== '0%' && `(${metrics.efficiencyGainPercent} faster)`}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
